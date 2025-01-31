@@ -1,0 +1,7 @@
+openai-whisper
+sounddevice
+numpy
+keyboard
+pynput
+PyGObject
+dbus-python
