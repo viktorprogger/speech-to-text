@@ -2,7 +2,6 @@ import gi
 from dbus import service
 
 gi.require_version("Gtk", "3.0")
-gi.require_version("Notify", "0.7")
 import os
 import queue
 import subprocess
@@ -14,7 +13,7 @@ import numpy as np
 import sounddevice as sd
 import whisper
 from dbus.mainloop.glib import DBusGMainLoop
-from gi.repository import Gtk, Notify
+from gi.repository import Gtk
 
 
 class VoiceInputSystem:
@@ -33,6 +32,7 @@ class VoiceInputSystem:
         self.recording = False
         self.audio_queue = queue.Queue()
         self.text_queue = queue.Queue()
+        self.previous_phrase = None
 
         self.audio_buffer = []
         self.silence_start = None  # Время начала тишины
@@ -42,10 +42,6 @@ class VoiceInputSystem:
         self.audio_thread = None  # Поток обработки аудио
         self.stop_event = threading.Event()  # Флаг ожидания сигнала D-Bus
         self.input_stream = None  # Поток записи микрофона
-
-        # Инициализация уведомлений
-        Notify.init("Voice Input")
-        self.notification = Notify.Notification.new("")
 
         # Настраиваем D-Bus для приема сигналов от системных хоткеев
         self.setup_dbus()
@@ -90,8 +86,18 @@ class VoiceInputSystem:
         )
 
     def show_notification(self, message):
-        self.notification.update("Voice Input", message, "mic")
-        self.notification.show()
+        subprocess.run(
+            [
+                "notify-send",
+                "-h",
+                "string:x-canonical-private-synchronous:speech-to-text",
+                "-h",
+                "int:transient:1",
+                "Voice Input",
+                message,
+            ],
+            check=True,
+        )
 
     # def on_right_click(self, icon, button, time):
     #     menu = Gtk.Menu()
@@ -104,7 +110,6 @@ class VoiceInputSystem:
     #     menu.popup(None, None, None, None, button, time)
 
     def quit(self, _):
-        Notify.uninit()
         Gtk.main_quit()
         os._exit(0)
 
@@ -135,7 +140,13 @@ class VoiceInputSystem:
                     self.audio_buffer = []  # Очищаем буфер после обработки
 
                     # Отправляем в Whisper
-                    result = self.model.transcribe(audio, language="ru")
+                    # Add previous phrase as context if available
+                    initial_prompt = (
+                        self.previous_phrase if self.previous_phrase else None
+                    )
+                    result = self.model.transcribe(
+                        audio, language="ru", initial_prompt=initial_prompt
+                    )
                     text = result["text"]
 
                     if text.strip() and result["segments"]:
@@ -144,6 +155,9 @@ class VoiceInputSystem:
                             and result["segments"][0]["no_speech_prob"] < 0.5
                         ):
                             self.text_queue.put(text)  # Отправляем текст в очередь
+                            self.previous_phrase = (
+                                text  # Сохраняем фразу для следующего контекста
+                            )
                         else:
                             print(
                                 "Text not sent to queue. logprob: {}, no_speech_prob: {}".format(
@@ -195,6 +209,7 @@ class VoiceInputSystem:
         else:
             self.show_notification("Voice input deactivated")
             self.stop_event.clear()  # Останавливаем обработку
+            self.previous_phrase = None  # Сбрасываем предыдущую фразу
             if self.input_stream:
                 self.input_stream.stop()
                 self.input_stream.close()

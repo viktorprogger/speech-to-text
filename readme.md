@@ -1,4 +1,4 @@
-1. `sudo apt install libportaudio2 python3-gi python3-gi-cairo gir1.2-gtk-3.0 libgirepository1.0-dev libcairo2-dev libdbus-1-dev`
+1. `sudo apt install libportaudio2 python3-gi python3-gi-cairo gir1.2-gtk-3.0 libgirepository1.0-dev libcairo2-dev libdbus-1-dev libnotify-bin`
 2. Скачать бинари ydotool c https://github.com/ReimuNotMoe/ydotool/releases/latest (в репозитории для Убунту очень старая версия, она не работает)
 3. `python -m venv venv`
 4. `source venv/bin/activate`
