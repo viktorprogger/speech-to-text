@@ -15,6 +15,8 @@ import whisper
 from dbus.mainloop.glib import DBusGMainLoop
 from gi.repository import Gtk
 
+LANGUAGE_CONSTANT = "en"
+
 
 class VoiceInputSystem:
     def __init__(self):
@@ -25,10 +27,10 @@ class VoiceInputSystem:
             "medium",
             device="cuda",
         )
-        # Прогрев модели
+        # Прогрев модели пустым аудиосигналом
         self.model.transcribe(
-            np.zeros((16000,), dtype=np.float32), language="ru"
-        )  # Пустой аудиосигнал
+            np.zeros((16000,), dtype=np.float32), language=LANGUAGE_CONSTANT
+        )
         self.recording = False
         self.audio_queue = queue.Queue()
         self.text_queue = queue.Queue()
@@ -145,7 +147,7 @@ class VoiceInputSystem:
                         self.previous_phrase if self.previous_phrase else None
                     )
                     result = self.model.transcribe(
-                        audio, language="ru", initial_prompt=initial_prompt
+                        audio, language=LANGUAGE_CONSTANT, initial_prompt=initial_prompt
                     )
                     text = result["text"]
 
