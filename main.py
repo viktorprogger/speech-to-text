@@ -3,6 +3,7 @@ from dbus import service
 
 gi.require_version("Gtk", "3.0")
 import os
+import shlex
 import queue
 import subprocess
 import threading
@@ -178,9 +179,7 @@ class VoiceInputSystem:
                 try:
                     # Вводим текст
                     subprocess.run(
-                        "echo -n '{}' | wl-copy && sleep 0.1 && /home/viktor/.local/bin/ydotool key 29:1 47:1 47:0 29:0".format(
-                            text
-                        ),
+                        f"echo -n {shlex.quote(text)} | wl-copy && sleep 0.1 && /home/viktor/.local/bin/ydotool key 29:1 47:1 47:0 29:0",
                         shell=True,
                         check=True,
                     )
